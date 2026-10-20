@@ -29,16 +29,28 @@ jobs:
       - name: Descomprimir proyecto
         run: |
           unzip -o Bille_proyecto_completo.zip -d proyecto
-          find proyecto -maxdepth 4 -type f
+
+      - name: Encontrar proyecto Android
+        run: |
+          find proyecto -name settings.gradle -o -name settings.gradle.kts
 
       - name: Compilar APK
         run: |
-          gradle -p proyecto/Bille assembleDebug
+          PROYECTO=$(find proyecto -name settings.gradle -type f -printf '%h\n' | head -n 1)
+          if [ -z "$PROYECTO" ]; then
+            PROYECTO=$(find proyecto -name settings.gradle.kts -type f -printf '%h\n' | head -n 1)
+          fi
+          if [ -z "$PROYECTO" ]; then
+            echo "No se encontró un proyecto Android Gradle dentro del ZIP."
+            exit 1
+          fi
+          echo "Proyecto encontrado: $PROYECTO"
+          gradle -p "$PROYECTO" assembleDebug
 
       - name: Guardar APK
         uses: actions/upload-artifact@v4
         with:
           name: Bille-APK
-          path: proyecto/Bille/app/build/outputs/apk/debug/*.apk
+          path: proyecto/**/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           
